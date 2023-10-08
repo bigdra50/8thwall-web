@@ -1,7 +1,7 @@
 import htmlContent from './record-button.html'
 import './record-button.css'
-import {configure, getConfig} from './capture-config'
-import {drawWatermark} from './watermark'
+import { configure, getConfig } from './capture-config'
+import { drawWatermark } from './watermark'
 
 const ACTIVE_TIMEOUT = 300
 let captureMode = 'standard'
@@ -59,9 +59,9 @@ const takeScreenshot = () => {
   status = 'flash'
   flashElement.classList.add('flashing')
   window.XR8.CanvasScreenshot.takeScreenshot({
-    onProcessFrame: ({ctx}) => {
+    onProcessFrame: ({ ctx }) => {
       if (currentConfig.onProcessFrame) {
-        currentConfig.onProcessFrame({ctx})
+        currentConfig.onProcessFrame({ ctx })
       }
       drawWatermark(ctx)
     },
@@ -75,10 +75,10 @@ const takeScreenshot = () => {
         array[i] = bytes.charCodeAt(i)
       }
 
-      const blob = new Blob([buffer], {type: 'image/jpeg'})
+      const blob = new Blob([buffer], { type: 'image/jpeg' })
 
       clearState()
-      window.dispatchEvent(new CustomEvent('mediarecorder-photocomplete', {detail: {blob}}))
+      window.dispatchEvent(new CustomEvent('mediarecorder-photocomplete', { detail: { blob } }))
     }
   ).catch(() => {
     clearState()
@@ -118,21 +118,21 @@ const startRecording = () => {
       if (status === 'finalize-blocked') {
         clearState()
       }
-      window.dispatchEvent(new CustomEvent('mediarecorder-recordcomplete', {detail: result}))
+      window.dispatchEvent(new CustomEvent('mediarecorder-recordcomplete', { detail: result }))
     },
     onStart: (result) => {
-      window.dispatchEvent(new CustomEvent('mediarecorder-recordstart', {detail: result}))
+      window.dispatchEvent(new CustomEvent('mediarecorder-recordstart', { detail: result }))
     },
     onStop: (result) => {
-      window.dispatchEvent(new CustomEvent('mediarecorder-recordstop', {detail: result}))
+      window.dispatchEvent(new CustomEvent('mediarecorder-recordstop', { detail: result }))
       showLoading()
     },
     onError: (result) => {
-      window.dispatchEvent(new CustomEvent('mediarecorder-recorderror', {detail: result}))
+      window.dispatchEvent(new CustomEvent('mediarecorder-recorderror', { detail: result }))
       clearState()
     },
     onProcessFrame: (frameInfo) => {
-      const {elapsedTimeMs, maxRecordingMs, ctx} = frameInfo
+      const { elapsedTimeMs, maxRecordingMs, ctx } = frameInfo
       const timeLeft = (1 - elapsedTimeMs / maxRecordingMs)
       progressBar.style.strokeDashoffset = `${100 * timeLeft}`
       if (currentConfig.onProcessFrame) {
@@ -142,10 +142,10 @@ const startRecording = () => {
     },
     onPreviewReady: (result) => {
       isWaitingOnFinal = true
-      window.dispatchEvent(new CustomEvent('mediarecorder-previewready', {detail: result}))
+      window.dispatchEvent(new CustomEvent('mediarecorder-previewready', { detail: result }))
     },
     onFinalizeProgress: result => window.dispatchEvent(
-      new CustomEvent('mediarecorder-finalizeprogress', {detail: result})
+      new CustomEvent('mediarecorder-finalizeprogress', { detail: result })
     ),
   })
 }
@@ -215,6 +215,33 @@ const up = () => {
   }
 }
 
+const click = () => {
+  console.log('click')
+  switch (captureMode) {
+    case 'fixed':
+      if (status === 'waiting') {
+        status = 'active'
+        container.classList.add('fixed-mode')
+        container.classList.add('active')
+        startRecording()
+      } else if (status === 'recording') {
+        endRecording()
+      }
+      break;
+    case 'photo':
+      container.classList.add('active')
+      takeScreenshot()
+      break;
+    case 'standard':
+      if (status === 'waiting') {
+        // Standard mode down starts active state
+        goActive()
+      }
+      break;
+  }
+}
+
+
 const initRecordButton = () => {
   window.XR8.addCameraPipelineModule(XR8.MediaRecorder.pipelineModule())
 
@@ -226,11 +253,7 @@ const initRecordButton = () => {
 
   const button = document.querySelector('#recorder-button')
 
-  button.addEventListener('touchstart', down)
-  button.addEventListener('mousedown', down)
-
-  window.addEventListener('mouseup', up)
-  window.addEventListener('touchend', up)
+  button.addEventListener('click', click)
 
   window.addEventListener('mediarecorder-previewclosed', previewClosed)
   window.addEventListener('mediarecorder-previewopened', previewOpened)
